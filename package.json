@@ -1,0 +1,21 @@
+{
+  "private": true,
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "devDependencies": {
+    "@nuxtjs/supabase": "^0.3.0",
+    "nuxt": "3.0.0",
+    "nuxt-windicss": "^2.6.0"
+  },
+  "dependencies": {
+    "@vee-validate/i18n": "^4.7.3",
+    "@vee-validate/rules": "^4.7.3",
+    "nuxt-icon": "^0.1.8",
+    "vee-validate": "^4.7.3"
+  }
+}
