@@ -1,5 +1,13 @@
 <script lang="ts" setup>
+import { ChangeEvent } from 'rollup';
 import { useForm, useField, useFieldArray, Field } from 'vee-validate';
+import { v4 as uuidv4 } from 'uuid';
+
+export interface ISocial {
+  title: string;
+  url: string;
+  icon: string;
+}
 
 useValidation()
 
@@ -64,7 +72,7 @@ const schema = {
 }
 
  
-const { handleSubmit, isSubmitting, submitCount } = useForm({
+const { handleSubmit, isSubmitting, submitCount, meta: formMeta } = useForm({
   initialValues: formValues,
   validationSchema: schema
 });
@@ -77,7 +85,7 @@ const { value: email, errorMessage: emailError } = useField('email');
 const { value: company, errorMessage: companyError } = useField('company');
 const { value: jobTitle, errorMessage: jobTitleError } = useField('jobTitle');
 
-const { remove, push, fields } = useFieldArray('social');
+const { remove, push, fields } = useFieldArray<ISocial>('social');
 
 
 /**
@@ -93,16 +101,19 @@ function onInvalidSubmit({ values, errors, results }) {
 
 const onSubmit = handleSubmit(async values => {
   
-  const {data} = await useFetch("/api/meta", {
+  await useFetch("/api/meta", {
     method: "PUT",
     body: values
   })
 
+  formMeta.value.dirty = false
   return new Promise((resolve, reject) => {
     setTimeout(() => {
       resolve(console.log(JSON.stringify(values, null, 2)))
     }, 2000)
   })
+
+  
 }, onInvalidSubmit);
 
 
@@ -152,13 +163,75 @@ const handleAddSocialMedia = (currentSocialLinks, social) => {
 
 }
 
+const imageUrl = ref("")
+const uploading = ref(false)
+
+
+const getAvatar = (url: string) => {
+  const { data } = supabase.storage.from('profiles').getPublicUrl(url)
+
+  imageUrl.value = data.publicUrl
+}
+
+getAvatar(metainfo.value.url)
+
+
+
+const getImages = async () => {
+
+  const { data, error } = await supabase.storage.from('profiles').list(`${metainfo.value.id}/`, {
+    limit: 100,
+    offset: 0,
+    sortBy: { column: "name", order: "asc" }
+  })
+
+  if(data !== null) {
+   // images.value = data
+  }
+}
+
+const deleteImage = async (imageName: string) => {
+  const { data, error } = await supabase.storage.from('profiles').remove([metainfo.value.url])
+
+  if(error) {
+    return alert(error)
+  } 
+
+  return data.length > 0
+}
+
+//const {data} = supabase.storage.from('profiles').getPublicUrl(`${metainfo.value.id}/profile.png`)
+
 const uploadFile = async (event) => {
-  const avatarFile = event.target.files[0]
-  const { data, error } = await supabase.storage.from('profile').upload('public/avatar1.png', avatarFile)
-  console.log(data)
-  /* const { data, error } = await supabase.storage
-  .from('profile')
-  .upload('public/avatar1.png', avatarFile) */
+
+  uploading.value = true
+
+  const file = event.target.files[0]
+
+  if(file) {
+    console.log(metainfo.value.url)
+    const deleted = await deleteImage(metainfo.value.url)
+    
+    console.log("deleting..", deleted)
+    const { data: uploadData, error: uploadError } = await supabase.storage.from('profiles').upload(`${metainfo.value.id}/${uuidv4()}`, file)
+
+    if(uploadData) {
+      console.log("Update api", uploadData)
+
+      await useFetch("/api/meta", {
+        method: "PUT",
+        body:  { ...metainfo.value, url: uploadData.path }
+      })
+
+      getAvatar(uploadData.path)
+      const { data: updatedUser } = await useFetch("/api/meta")
+      metainfo.value = updatedUser.value
+
+    }
+  }
+
+  uploading.value = false
+
 }
 </script>
 
@@ -170,9 +243,11 @@ const uploadFile = async (event) => {
       </button>
     </nav>
 
+
     <div class="p-4">
     
       <h1 class="text-2xl mb-4">Settings</h1>
+
 
       <div id="accordion-collapse" data-accordion="collapse">
         <h2 id="accordion-collapse-heading-1">
@@ -188,8 +263,13 @@ const uploadFile = async (event) => {
             
 
               <div class="flex items-center space-x-6 mb-4">
-                <div class="shrink-0">
-                  <img class="h-16 w-16 object-cover rounded-full" src="https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1361&q=80" alt="Current profile photo" />
+                <div class="shrink-0 relative overflow-hidden">
+                  <transition>
+                    <div v-if="uploading" class="bg-emerald-500/70 absolute w-full h-full rounded-full flex items-center justify-center text-white animate-spin">
+                      <Icon name="icomoon-free:spinner9" size="24" />
+                    </div>
+                  </transition>
+                  <img class="h-16 w-16 object-cover rounded-full" :src="imageUrl" alt="Current profile photo" />
                 </div>
                 <label class="block">
                   <span class="sr-only">Choose profile photo</span>
@@ -200,6 +280,7 @@ const uploadFile = async (event) => {
                     file:bg-emerald-50 file:text-emerald-700
                     hover:file:bg-emerald-100
                   "
+                  accept="image/png, image/jpeg"
                   @change="uploadFile"
                   />
                 </label>
@@ -255,13 +336,15 @@ const uploadFile = async (event) => {
                 <span class="text-sm text-red-500 font-medium">{{ emailError }}</span>
               </div>
 
-              <button class="bg-emerald-500 px-4 py-2 rounded-lg shadow text-white disabled:bg-gray-500/60 disabled:text-gray-200" type="submit" :disabled="isSubmitting">
-              <div v-if="isSubmitting" >
-                <Icon name="icomoon-free:spinner9" class="animate-spin mr-2" />
-                <span>Processing...</span>
-              </div>
-              <span v-else>Save</span>
-              </button>
+              <transition>
+                <button v-if="formMeta.dirty && formMeta.valid" class="bg-emerald-500 px-4 py-2 rounded-lg shadow text-white disabled:bg-gray-500/60 disabled:text-gray-200" type="submit" :disabled="isSubmitting">
+                  <div v-if="isSubmitting" >
+                    <Icon name="icomoon-free:spinner9" class="animate-spin mr-2" />
+                    <span>Processing...</span>
+                  </div>
+                  <span v-else>Save</span>
+                </button>
+              </transition>
             </form>
 
             <p v-else>Sorry but you have attempted to submit too many times</p>
@@ -276,8 +359,6 @@ const uploadFile = async (event) => {
         </h2>
         <div v-show="activeTab === 'accordion-collapse-body-2'" id="accordion-collapse-body-2" aria-labelledby="accordion-collapse-heading-2">
           <div class="p-5 font-light border border-b-0 border-gray-200 dark:border-gray-700">
-           
-
 
             <form @submit="onSubmit" novalidate>
 
@@ -287,7 +368,7 @@ const uploadFile = async (event) => {
 
                   <div class="w-full">
                     <div class="bg-red-500 rounded-lg relative w-full">
-                      <input :value="field.value.url" @input="event => field.value.url = event.target.value" :name="`social[${idx}].url`" type="url" id="url" class="pl-10 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Enter url" required>
+                      <input :value="field.value.url" @input="(event) => field.value.url = event.target.value" :name="`social[${idx}].url`" type="url" id="url" class="pl-10 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Enter url" required>
                       <Icon :name="field.value.icon" size="24" class="absolute top-3/12 ml-2" />
                     </div>
                     <span class="text-sm text-red-500 font-medium">{{ firstnameError }}</span>
@@ -365,6 +446,18 @@ const uploadFile = async (event) => {
 </template>
 
 <style scoped>
+
+.v-enter-active,
+.v-leave-active {
+  transition: all 0.5s ease;
+}
+
+.v-enter-from,
+.v-leave-to {
+  transform: translateY(-20px);
+  opacity: 0;
+}
+
 @keyframes spin {
     from {
         transform:rotate(0deg);

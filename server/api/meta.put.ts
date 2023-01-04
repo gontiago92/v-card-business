@@ -14,7 +14,6 @@ export default defineEventHandler(async (event) => {
     const body = await readBody(event)
 
     console.log(body)
-
     
    /*  const checkDataExists = response.find(item => item.name === body.name)
 

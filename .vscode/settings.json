@@ -1,0 +1,10 @@
+{
+    "workbench.colorTheme": "Bearded Theme Arc Blueberry",
+    "editor.mouseWheelZoom": true,
+    "terminal.integrated.fontFamily": "Jetbrains Mono",
+    "terminal.integrated.fontSize": 15,
+    "editor.fontFamily": "Jetbrains Mono",
+    "editor.fontLigatures": true,
+    "editor.fontWeight": "200",
+    
+}

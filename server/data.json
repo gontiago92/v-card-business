@@ -1,15 +1,17 @@
 {
   "name": {
-    "first": "Johndwe",
-    "last": "Doegreger"
+    "first": "Jeremy",
+    "last": "Landolinac"
   },
   "phone": {
     "mobile": "+352691001122",
     "work": "+352 255 24 25 780"
   },
+  "id": "987b5922-dfd1-4e6e-a47f-6c6c7e70ca32",
   "age": 31,
   "gender": "Male",
-  "jobTitle": "Project Manager",
+  "url": "987b5922-dfd1-4e6e-a47f-6c6c7e70ca32/ed194781-da54-4c06-8c6c-bb9355424923",
+  "jobTitle": "Marketing Assistant",
   "email": "john.doe@example.com",
   "company": "Apple GmbH",
   "social": [
@@ -28,5 +30,6 @@
       "icon": "mdi-facebook",
       "url": "https://www.facebook.com/profile.php?id=100060213097413"
     }
-  ]
+  ],
+  "bio": "I'm Jane Hong, and I recently graduated with an advanced diploma from Smith secondary school. I'm seeking an internship where I can apply my skills in content creation and increase my experience in digital marketing. "
 }
